@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.drc.golftourbillion"
-    compileSdk = 33
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.drc.golftourbillion.master"
