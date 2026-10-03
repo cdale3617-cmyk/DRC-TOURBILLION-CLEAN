@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="racing_green">#071C14</color>
+    <color name="deep_green">#0B2A1D</color>
+    <color name="metallic_gold">#D4AF37</color>
+    <color name="soft_gold">#F1D77A</color>
+    <color name="tourbillion_black">#050706</color>
+    <color name="off_white">#F5F2E8</color>
+    <color name="tourbillion_red">#9E1B1B</color>
+</resources>
