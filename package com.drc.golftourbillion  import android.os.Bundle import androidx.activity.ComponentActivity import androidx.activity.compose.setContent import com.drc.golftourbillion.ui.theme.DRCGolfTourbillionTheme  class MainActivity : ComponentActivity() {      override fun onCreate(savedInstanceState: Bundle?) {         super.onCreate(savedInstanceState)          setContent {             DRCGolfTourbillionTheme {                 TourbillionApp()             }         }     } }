@@ -1,0 +1,73 @@
+package com.drc.golftourbillion
+
+import androidx.compose.runtime.*
+import androidx.compose.material3.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+
+@Composable
+fun TourbillionApp() {
+
+    var currentScreen by remember {
+        mutableStateOf("HOME")
+    }
+
+    when (currentScreen) {
+
+        "HOME" -> {
+            TourbillionHome(
+                onStartCaddie = {
+                    currentScreen = "CADDIE"
+                },
+                onGolfLab = {
+                    currentScreen = "LAB"
+                },
+                onMyBag = {
+                    currentScreen = "BAG"
+                },
+                onCourses = {
+                    currentScreen = "COURSES"
+                },
+                onScorecard = {
+                    currentScreen = "SCORECARD"
+                }
+            )
+        }
+
+        "CADDIE" -> {
+            PlaceholderScreen(
+                title = "Caddie Engine",
+                onBack = { currentScreen = "HOME" }
+            )
+        }
+
+        "LAB" -> {
+            PlaceholderScreen(
+                title = "Analytical Frameworks And Diagnostic Suite",
+                onBack = { currentScreen = "HOME" }
+            )
+        }
+
+        "BAG" -> {
+            PlaceholderScreen(
+                title = "My Bag",
+                onBack = { currentScreen = "HOME" }
+            )
+        }
+
+        "COURSES" -> {
+            PlaceholderScreen(
+                title = "Course Library",
+                onBack = { currentScreen = "HOME" }
+            )
+        }
+
+        "SCORECARD" -> {
+            PlaceholderScreen(
+                title = "Scorecard",
+                onBack = { currentScreen = "HOME" }
+            )
+        }
+   
