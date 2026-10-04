@@ -28,3 +28,10 @@ private val TourbillionDarkColors = darkColorScheme(
 @Composable
 fun DRCGolfTourbillionTheme(
     content: @Composable () ->
+Unit
+) {
+    MaterialTheme(
+        colorScheme = TourbillionDarkColors,
+        content = content
+    )
+}
