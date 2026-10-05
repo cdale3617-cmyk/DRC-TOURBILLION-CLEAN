@@ -101,7 +101,7 @@ private fun saveScores(c:Context,s:List<Hole>){prefs(c).edit().putString("scores
    wx=temp.toString()+"°C • Wind "+speed+" km/h";wind=dirs[((deg+11)/22.5).toInt()%16]+" • "+speed+" km/h";conn.disconnect()
   }catch(_:Exception){wx="Weather unavailable — check internet"}}
  }
- Scaffold(containerColor=Green,bottomBar={Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(2.dp),horizontalArrangement=Arrangement.SpaceEvenly){listOf("HOME","CADDIE","LAB","SCORE","BAG","MORE").forEach{Nav(it,page==it){page=it}}}}){pad->
+ Scaffold(containerColor=Green,bottomBar={Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(2.dp),horizontalArrangement=Arrangement.SpaceEvenly){listOf("HOME","CADDIE","LAB","SCORE","BAG","MORE").forEach{item->Nav(item,(if(page=="LIVE_HOLE")"CADDIE" else page)==item){page=if(item=="CADDIE")"LIVE_HOLE" else item}}}}){pad->
   Box(Modifier.fillMaxSize().padding(pad)){
    when(page){
     "HOME"->TourbillionHomeScreen(
@@ -114,11 +114,32 @@ private fun saveScores(c:Context,s:List<Hole>){prefs(c).edit().putString("scores
      onPlayerNameChange={player=it;prefs(c).edit().putString("player",it).apply()},
      onCourseChange={page="MORE"},
      onUnitsToggle={yards=!yards;prefs(c).edit().putBoolean("yards",yards).apply()},
-     onStartRound={if(!allowed)ask.launch(Manifest.permission.ACCESS_FINE_LOCATION);hole=1;page="CADDIE"},
+     onStartRound={if(!allowed)ask.launch(Manifest.permission.ACCESS_FINE_LOCATION);hole=1;page="LIVE_HOLE"},
      onOpenBag={page="BAG"},
      onOpenLab={page="LAB"},
      onOpenScore={page="SCORE"},
      onOpenHistory={tool="Round History";page="TOOL"}
+    )
+    "LIVE_HOLE"->LiveHole(
+     courseName=course,
+     holeNumber=hole,
+     yards=yards,
+     gpsStatus=gps,
+     windSummary=wind,
+     onHoleChange={hole=it},
+     onSelectTab={selected->when(selected){
+      "CADDIE"->page="CADDIE"
+      "SCORE"->page="SCORE"
+      "BAG"->page="BAG"
+      "LAB"->page="LAB"
+      "DATA"->{tool="Round Overview";page="TOOL"}
+      "PLAN"->{tool="Pre-Round";page="TOOL"}
+      "GREEN"->{tool="Greenslope";page="TOOL"}
+      "TRACER"->{tool="Shot Tracer";page="TOOL"}
+      "GPS"->Unit
+      else->Unit
+     }},
+     modifier=Modifier.fillMaxSize()
     )
     "CADDIE"->Caddie(course,hole,scores,bag,yards,gps,wind,{hole=it},{v->scores[hole-1]=v;saveScores(c,scores);if(hole<18)hole++},{v->scores[hole-1]=v;saveScores(c,scores)})
     "SCORE"->Score(course,scores,yards){hole=it+1;page="CADDIE"}
