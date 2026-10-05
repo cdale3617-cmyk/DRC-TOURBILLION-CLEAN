@@ -4,9 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,54 +20,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 private val LiveHoleGold = Color(0xFFD4AF37)
-private val LiveHoleGreen = Color(0xFF071C14)
 private val LiveHolePanel = Color(0xFF0B2A1D)
 private val LiveHoleRed = Color(0xFF9E1B1B)
 private val LiveHoleWhite = Color(0xFFF5F5F5)
 private val LiveHoleMuted = Color(0xFFB9C3BE)
 
 @Composable
-fun LiveHole(
-    courseName: String,
-    holeNumber: Int,
-    yards: Boolean,
-    gpsStatus: String,
-    windSummary: String,
-    onHoleChange: (Int) -> Unit,
-    onSelectTab: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val safeHoleNumber = holeNumber.coerceIn(1, 18)
-    val course = GolfCourseCatalog.findByName(courseName)
-    val hole = course?.hole(safeHoleNumber)
-    val par = hole?.par ?: 4
-    val metres = hole?.metres ?: 350
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 13.dp, vertical = 9.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column {
-                Text(
-                    text = "LIVE CADDIE",
-                    color = LiveHoleGold,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = courseName,
-                    color = LiveHoleMuted,
-                    fontSize = 
+fun Live
