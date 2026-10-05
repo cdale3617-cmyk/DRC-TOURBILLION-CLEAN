@@ -37,12 +37,3 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.Executors
 import kotlin.math.abs
-import kotlin.math.roundToInt
-
-private val Gold=Color(0xFFD4AF37)
-private val Green=Color(0xFF071C14)
-private val Panel=Color(0xFF0B2A1D)
-private val Red=Color(0xFF9E1B1B)
-private val White=Color(0xFFF5F5F5)
-private val Muted=Color(0xFFB9C3BE)
-private data class Club(val name:String,val carry:Int,val loft:String
