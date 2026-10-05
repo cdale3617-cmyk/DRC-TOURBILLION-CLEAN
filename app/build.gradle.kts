@@ -9,11 +9,11 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.drc.golftourbillion.master"
+        applicationId = "com.drc.golftourbillion.master.b33"
         minSdk = 28
         targetSdk = 33
-        versionCode = 300
-        versionName = "3.0-clean-master"
+        versionCode = 301
+        versionName = "3.0-build33-install-fix"
     }
 
     compileOptions {
