@@ -42,12 +42,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val HomeGold = Color(0xFFD4AF37)
-private val HomeGreen = Color(0xFF071C14)
-private val HomePanel = Color(0xFF0B2A1D)
-private val HomeRed = Color(0xFF9E1B1B)
-private val HomeWhite = Color(0xFFF5F5F5)
-private val HomeMuted = Color(0xFFB9C3BE)
+private val HomeGold get() = AppPalette.accent
+private val HomeGreen get() = AppPalette.background
+private val HomePanel get() = AppPalette.panel
+private val HomeRed get() = AppPalette.action
+private val HomeWhite get() = AppPalette.text
+private val HomeMuted get() = AppPalette.muted
 
 @Composable
 fun TourbillionHomeScreen(
@@ -65,6 +65,7 @@ fun TourbillionHomeScreen(
     onOpenLab: () -> Unit,
     onOpenScore: () -> Unit,
     onOpenHistory: () -> Unit,
+    onToggleAntiGlare: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showPlayerDialog by remember { mutableStateOf(false) }
@@ -92,12 +93,17 @@ fun TourbillionHomeScreen(
                 fontWeight = FontWeight.Black
             )
 
-            TextButton(onClick = onUnitsToggle) {
-                Text(
-                    text = if (yards) "YARDS" else "METRES",
-                    color = HomeGold,
-                    fontWeight = FontWeight.Bold
-                )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = onToggleAntiGlare) {
+                    Text(if (AppPalette.antiGlare) "GLARE ON" else "GLARE OFF", color = HomeGold, fontWeight = FontWeight.Bold)
+                }
+                TextButton(onClick = onUnitsToggle) {
+                    Text(
+                        text = if (yards) "YARDS" else "METRES",
+                        color = HomeGold,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
 
