@@ -12,8 +12,15 @@ android {
         applicationId = "com.drc.golftourbillion.master.b33"
         minSdk = 28
         targetSdk = 33
-        versionCode = 301
-        versionName = "3.0-build33-install-fix"
+        versionCode = 302
+        versionName = "3.1-rebuild-test"
+    }
+
+    buildTypes {
+        getByName("debug") {
+            applicationIdSuffix = ".rebuild"
+            versionNameSuffix = "-side-by-side"
+        }
     }
 
     compileOptions {
@@ -32,15 +39,4 @@ android {
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
-}
-
-dependencies {
-    implementation(platform("androidx.compose:compose-bom:2024.09.03"))
-    implementation("androidx.activity:activity-compose:1.9.3")
-    implementation("androidx.activity:activity-ktx:1.9.3")
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material:material-icons-extended")
-    debugImplementation("androidx.compose.ui:ui-tooling")
 }
