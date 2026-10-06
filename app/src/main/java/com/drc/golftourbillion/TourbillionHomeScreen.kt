@@ -275,9 +275,9 @@ private fun HeroPanel(
                 .background(
                     Brush.verticalGradient(
                         listOf(
-                            Color(0xFF163B2C),
-                            Color(0xFF0B2A1D),
-                            Color(0xFF06150F)
+                            if (AppPalette.antiGlare) Color(0xFF252A2E) else Color(0xFF163B2C),
+                            if (AppPalette.antiGlare) Color(0xFF151A1E) else Color(0xFF0B2A1D),
+                            if (AppPalette.antiGlare) Color(0xFF090C0E) else Color(0xFF06150F)
                         )
                     ),
                     RoundedCornerShape(18.dp)
@@ -289,7 +289,7 @@ private fun HeroPanel(
             for (index in 0..5) {
                 val inset = 15.dp.toPx() + index * 17.dp.toPx()
                 drawOval(
-                    color = Color(0xFFB1C3A3).copy(alpha = 0.10f),
+                    color = (if (AppPalette.antiGlare) Color(0xFFDBE0E3) else Color(0xFFB1C3A3)).copy(alpha = if (AppPalette.antiGlare) 0.20f else 0.10f),
                     topLeft = Offset(
                         inset,
                         height * 0.35f + index * 6.dp.toPx()
@@ -326,9 +326,9 @@ private fun HeroPanel(
                 path = fairway,
                 brush = Brush.verticalGradient(
                     listOf(
-                        Color(0xFF5D8750),
-                        Color(0xFF367044),
-                        Color(0xFF245C38)
+                        if (AppPalette.antiGlare) Color(0xFFBCC2C7) else Color(0xFF5D8750),
+                        if (AppPalette.antiGlare) Color(0xFF8C959C) else Color(0xFF367044),
+                        if (AppPalette.antiGlare) Color(0xFF535D64) else Color(0xFF245C38)
                     )
                 ),
                 style = Stroke(
@@ -338,7 +338,7 @@ private fun HeroPanel(
             )
 
             drawOval(
-                color = Color(0xFF79A95D),
+                color = if (AppPalette.antiGlare) Color(0xFFD5D9DC) else Color(0xFF79A95D),
                 topLeft = Offset(width * 0.40f, height * 0.05f),
                 size = Size(width * 0.32f, height * 0.10f)
             )
