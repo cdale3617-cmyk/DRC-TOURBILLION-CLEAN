@@ -41,6 +41,7 @@ private val LiveRed get() = AppPalette.action
 @Composable
 fun LiveHole(
     courseName: String,
+    courseHoles: List<GolfHoleData> = emptyList(),
     holeNumber: Int,
     yards: Boolean,
     gpsStatus: String,
@@ -51,7 +52,7 @@ fun LiveHole(
     modifier: Modifier = Modifier
 ) {
     val course = GolfCourseCatalog.findByName(courseName)
-    val hole = course?.hole(holeNumber)
+    val hole = course?.hole(holeNumber) ?: courseHoles.firstOrNull { it.number == holeNumber }
     val par = hole?.par ?: 4
     val metres = hole?.metres ?: 0
     val shownDistance = if (yards) (metres * 1.09361).toInt() else metres
