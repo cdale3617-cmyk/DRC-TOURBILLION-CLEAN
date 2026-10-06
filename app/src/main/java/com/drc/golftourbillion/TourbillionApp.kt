@@ -39,12 +39,12 @@ import java.util.concurrent.Executors
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-private val Gold=Color(0xFFD4AF37)
-private val Green=Color(0xFF071C14)
-private val Panel=Color(0xFF0B2A1D)
-private val Red=Color(0xFF9E1B1B)
-private val White=Color(0xFFF5F5F5)
-private val Muted=Color(0xFFB9C3BE)
+private val Gold get() = AppPalette.accent
+private val Green get() = AppPalette.background
+private val Panel get() = AppPalette.panel
+private val Red get() = AppPalette.action
+private val White get() = AppPalette.text
+private val Muted get() = AppPalette.muted
 private data class Club(val name:String,val carry:Int,val loft:String)
 private data class Hole(val par:Int,val metres:Int,val shots:Int,val putts:Int,val fairway:Boolean,val gir:Boolean)
 private val pars=listOf(5,4,3,4,4,5,3,4,4,4,5,3,4,4,5,3,4,4)
@@ -67,6 +67,7 @@ private fun saveScores(c:Context,s:List<Hole>){prefs(c).edit().putString("scores
 
 @Composable fun TourbillionApp(){
  val c=LocalContext.current
+ val toggleAntiGlare = { val enabled = !AppPalette.antiGlare; AppPalette.antiGlare = enabled; prefs(c).edit().putBoolean("antiGlare", enabled).apply() }
  var page by remember{mutableStateOf("HOME")};var tool by remember{mutableStateOf("")};var hole by remember{mutableIntStateOf(1)}
  var yards by remember{mutableStateOf(prefs(c).getBoolean("yards",false))}
  var player by remember{mutableStateOf(prefs(c).getString("player","Dale")?:"Dale")}
@@ -76,6 +77,7 @@ private fun saveScores(c:Context,s:List<Hole>){prefs(c).edit().putString("scores
  var loc by remember{mutableStateOf<Location?>(null)};var gps by remember{mutableStateOf("GPS not connected")};var wx by remember{mutableStateOf("Weather waiting for GPS")};var wind by remember{mutableStateOf("")}
  var allowed by remember{mutableStateOf(ContextCompat.checkSelfPermission(c,Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED)}
  val worker=remember{Executors.newSingleThreadExecutor()}
+ DisposableEffect(worker){onDispose{worker.shutdownNow()}}
  val ask=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()){allowed=it;gps=if(it)"Finding GPS…" else "Location permission not granted"}
  DisposableEffect(allowed){
   if(!allowed) onDispose{} else {
@@ -118,7 +120,8 @@ private fun saveScores(c:Context,s:List<Hole>){prefs(c).edit().putString("scores
      onOpenBag={page="BAG"},
      onOpenLab={page="LAB"},
      onOpenScore={page="SCORE"},
-     onOpenHistory={tool="Round History";page="TOOL"}
+     onOpenHistory={tool="Round History";page="TOOL"},
+     onToggleAntiGlare=toggleAntiGlare
     )
     "LIVE_HOLE"->LiveHole(
      courseName=course,
@@ -126,6 +129,7 @@ private fun saveScores(c:Context,s:List<Hole>){prefs(c).edit().putString("scores
      yards=yards,
      gpsStatus=gps,
      windSummary=wind,
+     onToggleAntiGlare=toggleAntiGlare,
      onHoleChange={hole=it},
      onSelectTab={selected->when(selected){
       "CADDIE"->page="CADDIE"
