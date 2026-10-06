@@ -68,7 +68,7 @@ fun LiveHole(
             ) {
                 HoleContent(
                     courseName, holeNumber, par, metres, shownDistance, unit,
-                    gpsStatus, windSummary, onHoleChange, onSelectTab,
+                    gpsStatus, windSummary, onHoleChange, onSelectTab, onToggleAntiGlare,
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                     showHorizontalTabs = false
                 )
@@ -77,7 +77,7 @@ fun LiveHole(
         } else {
             HoleContent(
                 courseName, holeNumber, par, metres, shownDistance, unit,
-                gpsStatus, windSummary, onHoleChange, onSelectTab,
+                gpsStatus, windSummary, onHoleChange, onSelectTab, onToggleAntiGlare,
                 modifier = Modifier.fillMaxSize(),
                 showHorizontalTabs = true
             )
@@ -97,6 +97,7 @@ private fun HoleContent(
     windSummary: String,
     onHoleChange: (Int) -> Unit,
     onSelectTab: (String) -> Unit,
+    onToggleAntiGlare: () -> Unit,
     modifier: Modifier,
     showHorizontalTabs: Boolean
 ) {
