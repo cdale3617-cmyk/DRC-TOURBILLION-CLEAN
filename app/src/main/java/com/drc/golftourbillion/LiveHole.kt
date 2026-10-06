@@ -31,12 +31,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val LiveGold = Color(0xFFD4AF37)
-private val LiveGreen = Color(0xFF071C14)
-private val LivePanel = Color(0xFF0B2A1D)
-private val LiveWhite = Color(0xFFF5F5F5)
-private val LiveMuted = Color(0xFFB9C3BE)
-private val LiveRed = Color(0xFF9E1B1B)
+private val LiveGold get() = AppPalette.accent
+private val LiveGreen get() = AppPalette.background
+private val LivePanel get() = AppPalette.panel
+private val LiveWhite get() = AppPalette.text
+private val LiveMuted get() = AppPalette.muted
+private val LiveRed get() = AppPalette.action
 
 @Composable
 fun LiveHole(
@@ -47,6 +47,7 @@ fun LiveHole(
     windSummary: String,
     onHoleChange: (Int) -> Unit,
     onSelectTab: (String) -> Unit,
+    onToggleAntiGlare: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val course = GolfCourseCatalog.findByName(courseName)
@@ -112,7 +113,12 @@ private fun HoleContent(
                 Text("LIVE HOLE", color = LiveGold, fontSize = 21.sp, fontWeight = FontWeight.Black)
                 Text(courseName, color = LiveMuted, fontSize = 12.sp)
             }
-            Text("HOLE $holeNumber", color = LiveWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Column(horizontalAlignment = Alignment.End) {
+                Text("HOLE $holeNumber", color = LiveWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                TextButton(onClick = onToggleAntiGlare) {
+                    Text(if (AppPalette.antiGlare) "GLARE ON" else "GLARE OFF", color = LiveGold, fontSize = 10.sp)
+                }
+            }
         }
 
         if (showHorizontalTabs) {
