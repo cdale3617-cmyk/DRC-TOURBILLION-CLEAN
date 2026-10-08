@@ -3,14 +3,23 @@ package com.drc.golftourbillion
 data class GolfHoleData(
     val number: Int,
     val par: Int,
-    val metres: Int
+    val metres: Int,
+    val yardage: Int? = null,
+    val handicap: Int? = null
 )
 
 data class GolfCourseData(
     val id: String,
     val name: String,
-    val holes: List<GolfHoleData>
+    val holes: List<GolfHoleData>,
+    val teeName: String = "",
+    val teeGroup: String = "",
+    val courseRating: Double? = null,
+    val slopeRating: Int? = null
 ) {
+    val teeLabel: String
+        get() = listOf(teeName, teeGroup).filter { it.isNotBlank() }.joinToString(" • ")
+
     val totalPar: Int
         get() = holes.sumOf { it.par }
 
@@ -23,6 +32,8 @@ data class GolfCourseData(
 
 object GolfCourseCatalog {
 
+    // Legacy manually entered data, retained for existing rounds.
+    // This entry is not a verified API scorecard.
     val courses: List<GolfCourseData> = listOf(
         GolfCourseData(
             id = "mercure-capricorn-resort",

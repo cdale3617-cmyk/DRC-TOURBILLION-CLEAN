@@ -48,15 +48,16 @@ fun LiveHole(
     windSummary: String,
     onHoleChange: (Int) -> Unit,
     onSelectTab: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    courseData: GolfCourseData? = null
 ) {
-    val course = GolfCourseCatalog.findByName(courseName)
+    val course = courseData ?: GolfCourseCatalog.findByName(courseName)
     val hole = course?.hole(holeNumber)
 
     val par = hole?.par ?: 4
     val metres = hole?.metres ?: 0
     val shownDistance = if (yards) {
-        (metres * 1.09361).toInt()
+        hole?.yardage ?: (metres * 1.09361).toInt()
     } else {
         metres
     }
@@ -92,6 +93,12 @@ fun LiveHole(
                         text = courseName,
                         color = LiveMuted,
                         fontSize = 12.sp
+                    )
+                    Text(
+                        text = if (courseData != null) "${courseData.teeLabel} • Saved scorecard"
+                            else "Legacy/manual course data • not API verified",
+                        color = LiveMuted,
+                        fontSize = 11.sp
                     )
                 }
 
@@ -147,8 +154,8 @@ fun LiveHole(
                 }
 
                 OutlinedButton(
-                    onClick = { if (holeNumber < 18) onHoleChange(holeNumber + 1) },
-                    enabled = holeNumber < 18,
+                    onClick = { if (holeNumber < (course?.holes?.size ?: 18)) onHoleChange(holeNumber + 1) },
+                    enabled = holeNumber < (course?.holes?.size ?: 18),
                     border = BorderStroke(1.dp, LiveGold)
                 ) {
                     Text("NEXT", color = LiveGold, fontWeight = FontWeight.Bold)
@@ -167,7 +174,7 @@ fun LiveHole(
 
             LiveInfoCard(
                 title = "CADDIE • ADVICE ONLY",
-                value = "Choose a target and club after checking the live conditions.",
+                value = "Scorecard length is not distance to the pin. Hole GPS is unavailable from this course API. Choose a target and club after checking live conditions.",
                 modifier = Modifier.fillMaxWidth()
             )
 
