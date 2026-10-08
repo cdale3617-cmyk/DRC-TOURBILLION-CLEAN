@@ -4,6 +4,14 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+// Keep the existing APK workflow unchanged: CI assembly also verifies the
+// scorecard parser. Normal on-device/developer builds need no live API key.
+tasks.matching { it.name == "assembleDebug" }.configureEach {
+    if (System.getenv("CI") == "true") {
+        dependsOn("testDebugUnitTest")
+    }
+}
+
 android {
     namespace = "com.drc.golftourbillion"
     compileSdk = 34
@@ -12,8 +20,8 @@ android {
         applicationId = "com.drc.golftourbillion.master.b33"
         minSdk = 28
         targetSdk = 33
-        versionCode = 301
-        versionName = "3.0-build33-install-fix"
+        versionCode = 302
+        versionName = "3.0-build34-free-course-api"
     }
 
     compileOptions {
@@ -35,6 +43,9 @@ android {
 }
 
 dependencies {
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
     implementation(platform("androidx.compose:compose-bom:2024.09.03"))
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.activity:activity-ktx:1.9.3")

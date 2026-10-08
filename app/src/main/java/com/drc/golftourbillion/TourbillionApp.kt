@@ -38,6 +38,10 @@ import java.net.URL
 import java.util.concurrent.Executors
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private val Gold=Color(0xFFD4AF37)
 private val Green=Color(0xFF071C14)
@@ -58,21 +62,45 @@ private fun loadBag(c:Context):List<Club>{
  return raw.split("|").mapNotNull{val p=it.split("~");if(p.size==3)Club(p[0],p[1].toIntOrNull()?:0,p[2])else null}.ifEmpty{defaultBag}
 }
 private fun saveBag(c:Context,b:List<Club>){prefs(c).edit().putString("bag",b.joinToString("|"){it.name+"~"+it.carry+"~"+it.loft}).apply()}
-private fun loadScores(c:Context):List<Hole>{
- val raw=prefs(c).getString("scores",null)?:return pars.indices.map{Hole(pars[it],lengths[it],0,0,false,false)}
+private fun loadScores(c:Context,courseData:GolfCourseData?=null):List<Hole>{
+ val initial=courseData?.holes?.map{Hole(it.par,it.metres,0,0,false,false)}?:pars.indices.map{Hole(pars[it],lengths[it],0,0,false,false)}
+ val raw=prefs(c).getString("scores",null)?:return initial
  val list=raw.split("|").mapNotNull{val p=it.split("~");if(p.size!=6)null else Hole(p[0].toIntOrNull()?:4,p[1].toIntOrNull()?:350,p[2].toIntOrNull()?:0,p[3].toIntOrNull()?:0,p[4]=="1",p[5]=="1")}
- return if(list.size==18)list else pars.indices.map{Hole(pars[it],lengths[it],0,0,false,false)}
+ return if(list.size==initial.size)list else initial
 }
 private fun saveScores(c:Context,s:List<Hole>){prefs(c).edit().putString("scores",s.joinToString("|"){it.par.toString()+"~"+it.metres+"~"+it.shots+"~"+it.putts+"~"+(if(it.fairway)"1" else "0")+"~"+(if(it.gir)"1" else "0")}).apply()}
 
 @Composable fun TourbillionApp(){
  val c=LocalContext.current
+ val courseRepository=remember{CourseRepository(c.applicationContext)}
+ var selectedCourse by remember{mutableStateOf(courseRepository.selected())}
+ var pendingCourse by remember{mutableStateOf<GolfCourseData?>(null)}
+ var courseError by remember{mutableStateOf<String?>(null)}
+ var selectingCourse by remember{mutableStateOf(false)}
+ val courseScope=rememberCoroutineScope()
  var page by remember{mutableStateOf("HOME")};var tool by remember{mutableStateOf("")};var hole by remember{mutableIntStateOf(1)}
  var yards by remember{mutableStateOf(prefs(c).getBoolean("yards",false))}
  var player by remember{mutableStateOf(prefs(c).getString("player","Dale")?:"Dale")}
- var course by remember{mutableStateOf(prefs(c).getString("course","Mercure Capricorn Resort")?:"Mercure Capricorn Resort")}
+ var course by remember{mutableStateOf(selectedCourse?.name?:prefs(c).getString("course","Mercure Capricorn Resort")?:"Mercure Capricorn Resort")}
  val bag=remember{mutableStateListOf<Club>().apply{addAll(loadBag(c))}}
- val scores=remember{mutableStateListOf<Hole>().apply{addAll(loadScores(c))}}
+  val scores=remember{mutableStateListOf<Hole>().apply{addAll(loadScores(c,selectedCourse))}}
+  val applyCourse:(GolfCourseData)->Unit={next->
+   if(!selectingCourse){
+    selectingCourse=true
+    courseScope.launch{
+    try{
+     withContext(Dispatchers.IO){courseRepository.select(next)}
+     selectedCourse=next
+     course=next.name
+     prefs(c).edit().putString("course",next.name).apply()
+     scores.clear();scores.addAll(next.holes.map{Hole(it.par,it.metres,0,0,false,false)})
+     saveScores(c,scores);hole=1;pendingCourse=null;page="MORE"
+    }catch(cancelled:CancellationException){throw cancelled}
+    catch(_:Exception){courseError="Could not save the course. Your current scorecard has not been changed."}
+    finally{selectingCourse=false}
+    }
+   }
+  }
  var loc by remember{mutableStateOf<Location?>(null)};var gps by remember{mutableStateOf("GPS not connected")};var wx by remember{mutableStateOf("Weather waiting for GPS")};var wind by remember{mutableStateOf("")}
  var allowed by remember{mutableStateOf(ContextCompat.checkSelfPermission(c,Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED)}
  val worker=remember{Executors.newSingleThreadExecutor()}
@@ -112,13 +140,14 @@ private fun saveScores(c:Context,s:List<Hole>){prefs(c).edit().putString("scores
      windSummary=wind,
      yards=yards,
      onPlayerNameChange={player=it;prefs(c).edit().putString("player",it).apply()},
-     onCourseChange={page="MORE"},
+      onCourseChange={page="COURSES"},
      onUnitsToggle={yards=!yards;prefs(c).edit().putBoolean("yards",yards).apply()},
      onStartRound={if(!allowed)ask.launch(Manifest.permission.ACCESS_FINE_LOCATION);hole=1;page="LIVE_HOLE"},
      onOpenBag={page="BAG"},
      onOpenLab={page="LAB"},
      onOpenScore={page="SCORE"},
-     onOpenHistory={tool="Round History";page="TOOL"}
+     onOpenHistory={tool="Round History";page="TOOL"},
+     holeCount=scores.size
     )
     "LIVE_HOLE"->LiveHole(
      courseName=course,
@@ -139,16 +168,34 @@ private fun saveScores(c:Context,s:List<Hole>){prefs(c).edit().putString("scores
       "GPS"->Unit
       else->Unit
      }},
-     modifier=Modifier.fillMaxSize()
+      modifier=Modifier.fillMaxSize(),
+      courseData=selectedCourse
     )
-    "CADDIE"->Caddie(course,hole,scores,bag,yards,gps,wind,{hole=it},{v->scores[hole-1]=v;saveScores(c,scores);if(hole<18)hole++},{v->scores[hole-1]=v;saveScores(c,scores)})
+    "CADDIE"->Caddie(course,hole,scores,bag,yards,gps,wind,{hole=it},{v->scores[hole-1]=v;saveScores(c,scores);if(hole<scores.size)hole++},{v->scores[hole-1]=v;saveScores(c,scores)})
     "SCORE"->Score(course,scores,yards){hole=it+1;page="CADDIE"}
     "BAG"->Bag(bag,yards){i,v->if(i==null)bag.add(v)else bag[i]=v;saveBag(c,bag)}
     "LAB"->Lab{tool=it;page="TOOL"}
-    "MORE"->More(course,player,yards,{course=it;prefs(c).edit().putString("course",it).apply()},{yards=!yards;prefs(c).edit().putBoolean("yards",yards).apply()},{tool=it;page="TOOL"})
+    "MORE"->More(course,player,yards,{page="COURSES"},{yards=!yards;prefs(c).edit().putBoolean("yards",yards).apply()},{tool=it;page="TOOL"})
+    "COURSES"->CourseBrowser(courseRepository,{next->
+     if(selectingCourse){Unit}
+     else if(selectedCourse==next){page="MORE"}
+     else if(scores.any{it.shots>0||it.putts>0||it.fairway||it.gir}){pendingCourse=next}
+     else applyCourse(next)
+    },{page="MORE"})
     else->Tool(tool,yards,{page="LAB"},{page="BAG"})
    }
   }
+ }
+ pendingCourse?.let{next->
+  AlertDialog(onDismissRequest={pendingCourse=null},
+   title={Text("Start a new course scorecard?")},
+   text={Text("Selecting ${next.name} (${next.teeLabel}) clears the current round's scores on this device. Saved round history is not removed. Cancel to keep playing this round.")},
+   confirmButton={TextButton(onClick={pendingCourse=null;applyCourse(next)}){Text("START NEW SCORECARD")}},
+   dismissButton={TextButton(onClick={pendingCourse=null}){Text("CANCEL")}})
+ }
+ courseError?.let{error->
+  AlertDialog(onDismissRequest={courseError=null},title={Text("Course not changed")},
+   text={Text(error)},confirmButton={TextButton(onClick={courseError=null}){Text("OK")}})
  }
 }
 
@@ -175,17 +222,17 @@ private fun saveScores(c:Context,s:List<Hole>){prefs(c).edit().putString("scores
  fun update(){onEdit(Hole(par,length,shots,putts,fairway,gir))}
  Page{
   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("LIVE CADDIE",color=Gold,fontSize=21.sp,fontWeight=FontWeight.Bold);Text(course,color=Muted,fontSize=11.sp)}
-  Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){OutlinedButton(onClick={if(index>1)onIndex(index-1)},enabled=index>1,border=BorderStroke(1.dp,Gold)){Text("PREV",color=Gold)};Column(horizontalAlignment=Alignment.CenterHorizontally){Text("HOLE "+index,color=Gold,fontSize=28.sp,fontWeight=FontWeight.Bold);Text("PAR "+par+" • "+d+(if(yards)" yd" else " m"),color=White)};OutlinedButton(onClick={if(index<18)onIndex(index+1)},enabled=index<18,border=BorderStroke(1.dp,Gold)){Text("NEXT",color=Gold)}}
+   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){OutlinedButton(onClick={if(index>1)onIndex(index-1)},enabled=index>1,border=BorderStroke(1.dp,Gold)){Text("PREV",color=Gold)};Column(horizontalAlignment=Alignment.CenterHorizontally){Text("HOLE "+index,color=Gold,fontSize=28.sp,fontWeight=FontWeight.Bold);Text("PAR "+par+" • "+d+(if(yards)" yd" else " m"),color=White)};OutlinedButton(onClick={if(index<scores.size)onIndex(index+1)},enabled=index<scores.size,border=BorderStroke(1.dp,Gold)){Text("NEXT",color=Gold)}}
   PanelCard("HOLE MAP","TEE  ↑  FAIRWAY  ↑  GREEN","Hole length is editable. GPS reports current device position.")
   Row(horizontalArrangement=Arrangement.spacedBy(7.dp)){Tiny("GPS",gps,Modifier.weight(1f));Tiny("WIND",wind.ifBlank{"Waiting for GPS"},Modifier.weight(1f))}
-  Row(horizontalArrangement=Arrangement.spacedBy(7.dp)){Tiny("DISTANCE",d.toString()+(if(yards)" yd" else " m"),Modifier.weight(1f));Tiny("CLUB ADVICE",recommendation,Modifier.weight(1f))}
-  Text("Advice only • confirm target and club",color=Muted,fontSize=12.sp)
+   Row(horizontalArrangement=Arrangement.spacedBy(7.dp)){Tiny("SCORECARD LENGTH",d.toString()+(if(yards)" yd" else " m"),Modifier.weight(1f));Tiny("CLUB ADVICE",recommendation,Modifier.weight(1f))}
+   Text("Scorecard length is not distance to the pin. Advice only • confirm target and club.",color=Muted,fontSize=12.sp)
   PanelCard("SCORE","Strokes: "+shots+" • Putts: "+putts,"Score saves on this device")
   Row(horizontalArrangement=Arrangement.spacedBy(7.dp)){OutlineAction("− STROKE",{if(shots>1)shots--;update()},Modifier.weight(1f));OutlineAction("+ STROKE",{shots++;update()},Modifier.weight(1f))}
   Row(horizontalArrangement=Arrangement.spacedBy(7.dp)){OutlineAction("− PUTT",{if(putts>0)putts--;update()},Modifier.weight(1f));OutlineAction("+ PUTT",{putts++;update()},Modifier.weight(1f))}
   Row(verticalAlignment=Alignment.CenterVertically){Checkbox(fairway,{fairway=it;update()},colors=CheckboxDefaults.colors(checkedColor=Gold));Text("Fairway",color=White);Checkbox(gir,{gir=it;update()},colors=CheckboxDefaults.colors(checkedColor=Gold));Text("GIR",color=White)}
   OutlinedButton(onClick={edit=true},modifier=Modifier.fillMaxWidth(),border=BorderStroke(1.dp,Gold)){Text("EDIT HOLE PAR / DISTANCE",color=Gold)}
-  Button(onClick={onSave(Hole(par,length,shots,putts,fairway,gir))},modifier=Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=Red,contentColor=Gold),border=BorderStroke(1.dp,Gold)){Text(if(index<18)"SAVE SCORE • NEXT HOLE" else "SAVE FINAL HOLE",fontWeight=FontWeight.Bold)}
+   Button(onClick={onSave(Hole(par,length,shots,putts,fairway,gir))},modifier=Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=Red,contentColor=Gold),border=BorderStroke(1.dp,Gold)){Text(if(index<scores.size)"SAVE SCORE • NEXT HOLE" else "SAVE FINAL HOLE",fontWeight=FontWeight.Bold)}
  }
  if(edit)HoleDialog(par,length,{edit=false}){p,m->par=p;length=m;update()}
 }
@@ -194,7 +241,7 @@ private fun saveScores(c:Context,s:List<Hole>){prefs(c).edit().putString("scores
  val played=scores.filter{it.shots>0};val total=played.sumOf{it.shots};val par=played.sumOf{it.par}
  Page{
   Text("SCORECARD",color=Gold,fontSize=24.sp,fontWeight=FontWeight.Bold);Text(course,color=White)
-  Row(horizontalArrangement=Arrangement.spacedBy(5.dp)){Tiny("HOLES",played.size.toString()+"/18",Modifier.weight(1f));Tiny("STROKES",if(played.isEmpty())"—" else total.toString(),Modifier.weight(1f));Tiny("TO PAR",if(played.isEmpty())"—" else (if(total>par)"+" else "")+(total-par),Modifier.weight(1f))}
+   Row(horizontalArrangement=Arrangement.spacedBy(5.dp)){Tiny("HOLES",played.size.toString()+"/"+scores.size,Modifier.weight(1f));Tiny("STROKES",if(played.isEmpty())"—" else total.toString(),Modifier.weight(1f));Tiny("TO PAR",if(played.isEmpty())"—" else (if(total>par)"+" else "")+(total-par),Modifier.weight(1f))}
   Text("Tap ENTER to edit a hole. Keep the paper card for tournaments.",color=Muted,fontSize=12.sp)
   scores.forEachIndexed{i,s->Card(Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=Panel),border=BorderStroke(1.dp,Gold)){Row(Modifier.fillMaxWidth().padding(horizontal=6.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween){Text("HOLE "+(i+1),color=Gold,fontWeight=FontWeight.Bold);Text("P"+s.par,color=White);Text(distance(s.metres,yards).toString()+(if(yards)"yd" else "m"),color=Muted);Text(if(s.shots==0)"—" else s.shots.toString(),color=Gold,fontSize=18.sp,fontWeight=FontWeight.Bold);TextButton(onClick={onHole(i)}){Text("ENTER",color=Gold,fontSize=10.sp)}}}}
   PanelCard("OFFICIAL CARD","Use and sign the paper card","Tournament reminder")
@@ -216,7 +263,7 @@ private fun saveScores(c:Context,s:List<Hole>){prefs(c).edit().putString("scores
 private val tools=listOf("Swing Monitor","Shot Tracer","Shot Pattern / Dispersion","Putting Practice","Short Game","Wedge Distances","Greenside Chipping","Greenslope","Score Comparison","Biometrics","Round Overview","Pre-Round","Club Equipment","Round History","How To")
 private fun toolInfo(s:String)=when(s){"Swing Monitor"->"Record a swing or select a saved video";"Shot Tracer"->"Review swing video and log a shot";"Shot Pattern / Dispersion"->"Record shot distance and miss direction";"Putting Practice"->"Log putts from repeatable distances";"Short Game"->"Track up-and-down practice";"Wedge Distances"->"Build a wedge carry chart";"Greenside Chipping"->"Log chip start and finish distances";"Greenslope"->"Open camera and save a green read";"Score Comparison"->"Compare this round with your target";"Biometrics"->"Record heart rate and oxygen saturation";"Round Overview"->"Review scoring and round stats";"Pre-Round"->"Complete your preparation checklist";"Club Equipment"->"Edit club lofts and carries";"Round History"->"Review saved scorecard";else->"Quick guide to Tourbillion"}
 @Composable private fun Lab(onPick:(String)->Unit){Page{Text("Analytical Frameworks And Diagnostic Suite",color=Gold,fontSize=21.sp,fontWeight=FontWeight.Bold);tools.forEach{Action(it,toolInfo(it),Modifier.fillMaxWidth()){onPick(it)}}}}
-@Composable private fun More(course:String,player:String,yards:Boolean,onCourse:(String)->Unit,onUnits:()->Unit,onTool:(String)->Unit){var choose by remember{mutableStateOf(false)};Page{Text("MORE",color=Gold,fontSize=24.sp,fontWeight=FontWeight.Bold);PanelCard("PLAYER",player,"Name is editable from Home");PanelCard("COURSE",course,"Select course"){choose=true};Action("UNITS",if(yards)"Switch to metres" else "Switch to yards",Modifier.fillMaxWidth(),onUnits);Action("HOW TO","App guide",Modifier.fillMaxWidth()){onTool("How To")};Action("PRE-ROUND","Preparation checklist",Modifier.fillMaxWidth()){onTool("Pre-Round")};Action("ROUND OVERVIEW","Scoring, fairways and greens",Modifier.fillMaxWidth()){onTool("Round Overview")};Text("Tournament play: keep and sign the official paper card.",color=Muted,fontSize=12.sp)};if(choose)SelectDialog("Select course",listOf("Mercure Capricorn Resort","Custom Course"),{choose=false}){onCourse(it)}}
+@Composable private fun More(course:String,player:String,yards:Boolean,onCourse:()->Unit,onUnits:()->Unit,onTool:(String)->Unit){Page{Text("MORE",color=Gold,fontSize=24.sp,fontWeight=FontWeight.Bold);PanelCard("PLAYER",player,"Name is editable from Home");PanelCard("COURSE",course,"Search courses • choose a tee • save offline",onCourse);Action("UNITS",if(yards)"Switch to metres" else "Switch to yards",Modifier.fillMaxWidth(),onUnits);Action("HOW TO","App guide",Modifier.fillMaxWidth()){onTool("How To")};Action("PRE-ROUND","Preparation checklist",Modifier.fillMaxWidth()){onTool("Pre-Round")};Action("ROUND OVERVIEW","Scoring, fairways and greens",Modifier.fillMaxWidth()){onTool("Round Overview")};Text("Tournament play: keep and sign the official paper card.",color=Muted,fontSize=12.sp)}}
 
 @Composable private fun Tool(name:String,yards:Boolean,onBack:()->Unit,onBag:()->Unit){
  val c=LocalContext.current;val p=prefs(c);var message by remember(name){mutableStateOf("Ready")};var a by remember(name){mutableStateOf("")};var b by remember(name){mutableStateOf("")};var hr by remember{mutableStateOf(p.getString("hr","")?:"")};var spo by remember{mutableStateOf(p.getString("spo","")?:"")};var checked by remember{mutableStateOf(setOf<String>())}

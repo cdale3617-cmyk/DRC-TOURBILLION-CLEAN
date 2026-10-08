@@ -65,7 +65,8 @@ fun TourbillionHomeScreen(
     onOpenLab: () -> Unit,
     onOpenScore: () -> Unit,
     onOpenHistory: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    holeCount: Int = 18
 ) {
     var showPlayerDialog by remember { mutableStateOf(false) }
     var editedPlayer by remember(playerName) {
@@ -103,6 +104,7 @@ fun TourbillionHomeScreen(
 
         HeroPanel(
             playerName = playerName,
+            holeCount = holeCount,
             onEditPlayer = { showPlayerDialog = true }
         )
 
@@ -256,6 +258,7 @@ fun TourbillionHomeScreen(
 @Composable
 private fun HeroPanel(
     playerName: String,
+    holeCount: Int,
     onEditPlayer: () -> Unit
 ) {
     Box(
@@ -394,7 +397,7 @@ private fun HeroPanel(
         }
 
         Text(
-            text = "18 HOLES  •  ADVICE ONLY",
+            text = "$holeCount HOLES  •  ADVICE ONLY",
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp),
